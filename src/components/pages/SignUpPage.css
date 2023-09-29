@@ -1,0 +1,19 @@
+
+
+.form-container{
+    display: flex;
+    flex-direction: column;
+    margin: 20%;
+    border: solid black;
+    padding: 30px 10px;
+    width: 50%
+}
+
+
+label{
+    padding: 10px 2px ;
+}
+
+input{
+    margin: 2px 20px;
+}
