@@ -5,10 +5,17 @@ import { authenticationAction } from "../store/auth";
 
 const LoginPage=()=>{
 
+
+  const history= useHistory();
+
   const emailInputRef = useRef();
   const passwordInputRef = useRef();
-  const history = useHistory();
   const dispatch = useDispatch();
+
+  const redirectToLoginPage = () => {
+    history.push('/signup');
+  };
+
 
   const authenticationToken = useSelector((state)=>state.auth.token);
 
@@ -75,6 +82,12 @@ const LoginPage=()=>{
         </div>
         <button>
           Login
+        </button>
+        <button
+          type="button"
+          onClick={redirectToLoginPage}
+        >
+          Create new Account
         </button>
       </form>
     </div>
