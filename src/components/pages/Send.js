@@ -4,6 +4,25 @@ import { Editor } from 'react-draft-wysiwyg';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 import './send.css';
 
+const sendMessage = (sender, receiver, subject, message) => {
+  const email = localStorage.getItem('email');
+  const modifiedEmail = email.replace(/['@','.']/g, '');
+  const messageData = {
+    sender: sender,
+    receiver: receiver,
+    subject: subject,
+    message: message
+  };
+
+  return fetch(`https://mail-box-client-58ba1-default-rtdb.firebaseio.com/${modifiedEmail}/messages.json`, {
+    method: 'POST',
+    body: JSON.stringify(messageData),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+};
+
 const Send = () => {
   const [editorState, setEditorState] = useState(EditorState.createEmpty());
   const editorRef = useRef(null);
@@ -12,59 +31,38 @@ const Send = () => {
 
   const emailChangeHandler = (e) => {
     setEmail(e.target.value);
-  }
+  };
 
   const subjectChangeHandler = (e) => {
     setSubject(e.target.value);
-  }
+  };
 
   const editorHandler = (state) => {
     setEditorState(state);
-  }
+  };
 
-  const submitHandler = (e) => {
+  const submitHandler = async (e) => {
     e.preventDefault();
     const sender = localStorage.getItem('email');
     const receiver = email.replace(/['@','.']/g, '');
   
     const contentState = editorState.getCurrentContent();
     const plainText = contentState.getPlainText();
-  
-    fetch(`https://mail-box-client-58ba1-default-rtdb.firebaseio.com/${sender}.json`, {
-      method: 'POST',
-      body: JSON.stringify({
-        subject: subject,
-        message: plainText
-      }),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    }).then((res) => {
-      if (!res.ok) {
-        alert(res.error.message);
+
+    try {
+      const senderResponse = await sendMessage(sender, receiver, subject, plainText);
+      const receiverResponse = await sendMessage(sender, receiver, subject, plainText);
+
+      if (senderResponse.ok && receiverResponse.ok) {
+        console.log('Mail sent successfully!');
       } else {
-        console.log('Sent to sender successfully');
+        throw new Error('Failed to send mail');
       }
-    });
-  
-    fetch(`https://mail-box-client-58ba1-default-rtdb.firebaseio.com/${receiver}.json`, {
-      method: 'POST',
-      body: JSON.stringify({
-        subject: subject,
-        message: plainText
-      }),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    }).then((res) => {
-      if (!res.ok) {
-        alert(res.error.message);
-      } else {
-        console.log('Sent to receiver successfully');
-      }
-    });
-  }
-  
+    } catch (error) {
+      console.error('Error sending mail:', error);
+      alert('Failed to send mail');
+    }
+  };
 
   return (
     <Fragment>
@@ -94,7 +92,7 @@ const Send = () => {
         </div>
       </div>
     </Fragment>
-  )
-}
+  );
+};
 
 export default Send;
