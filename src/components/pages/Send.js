@@ -1,65 +1,98 @@
-import React, { useEffect, useState } from 'react'
-import { Button } from 'react-bootstrap';
-import { useDispatch, useSelector } from 'react-redux';
-import { NavLink } from 'react-router-dom';
-import { mailSliceAction } from '../storeRedux/emailReducer';
-import classes from './SentBox.module.css'
-
+import Button from 'react-bootstrap/Button';
+import Form from 'react-bootstrap/Form';
+import classes from './Send.module.css'
+import { Editor } from "react-draft-wysiwyg";
+import { EditorState } from 'draft-js';
+import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
+import React, { Fragment, useState } from 'react'
 const Send = () => {
-    const dispatch=useDispatch();
-    const [reRender,setreRender]=useState(true)
-    const mailInSentbox=useSelector(state=>state.mail.sendMails);
-    const myEmail=localStorage.getItem('email').replace(/['@','.']/g,'');
-
-    const deleteHandler=async(id)=>{
-    const response= await fetch(`https://mail-box-client-58ba1-default-rtdb.firebaseio.com/sentbox/${myEmail}/${id}.json`,{
-        method:'DELETE'
-    })  
-    const deleteData=await response.json();
-    setreRender((prev)=>!prev)
-    console.log('deletedddddd');
+    const [editorState , setEditorState] = useState(()=> EditorState.createEmpty() )
+    const [email,setEmail]=useState('');
+    const [subject,setSubject]=useState('');
+    const EmailchangeHandler=(e)=>{
+        setEmail(e.target.value);
     }
-
-
-
-    let data=[];
-
-    useEffect(()=>{
-        const fetchDaata=async()=>{
-            const reponse=await fetch(`https://mail-box-client-58ba1-default-rtdb.firebaseio.com/sentbox/${myEmail}.json`);
-            const mailData=await reponse.json();
-            console.log('useEffectcalled', mailData);
-            for(let key in mailData){
-                data=[{id:key,...mailData[key]},...data]
-            }
-
-            dispatch(mailSliceAction.updateSentbox(data))
-          console.log(mailInSentbox,'mailInSentbox');
+const SubjectchangeHandler=(e)=>{
+    setSubject(e.target.value);
+}
+    const editorHandler=(editorState)=>{
+       setEditorState(editorState)
+    //    console.log(editorState.getCurrentContent().getPlainText(),'editorState');
+    
+    }
+    const submitHandler=(e)=>{
+        e.preventDefault();
+        const sender=localStorage.getItem('email');
+        const sender1=sender.replace(/[@.]/g,'');
+        const receiver=email.replace(/['@','.']/g,'');
+       // console.log(sender,receiver);
+       fetch(`https://book-search-app-62511-default-rtdb.firebaseio.com/sentbox/${sender1}.json`,{
+        method:'POST',
+        body:JSON.stringify({
+            to:email,
+            subject:subject,
+            message:editorState.getCurrentContent().getPlainText()
+           
+        }),
+        headers:{
+            'Content-Type':'application/json'
         }
-        fetchDaata();
-    },[reRender])
-    console.log(data,'data');
+       }).then((res)=>{
+        if(!res.ok){
+            alert(res.error.message)
+        }else{
+            console.log('successfull');
+            console.log(sender1);
+            setEditorState('');
+            setSubject('');
+            setEmail('');
+        }
+       })
+       fetch(`https://mail-box-client-58ba1-default-rtdb.firebaseio.com/inbox/${receiver}.json`,{
+        method:'POST',
+        body:JSON.stringify({
+            sender:sender,
+            subject:subject,
+            message:editorState.getCurrentContent().getPlainText(),
+            dot:true
+        }),
+        headers:{
+            'Content-Type':'application/json'
+        }
+       }).then((res)=>{
+        if(!res.ok){
+            alert(res.error.message)
+        }else{
+            console.log('successfull');
+        }
+       })
+    }
   return (
-    <div className={classes.main}>
-       {mailInSentbox.length>0 ?
-  (<div className={classes.row}>
-            {
-
-                mailInSentbox.map((item)=>(
-                    <div className={classes.row1} key={item.id}>
-                    <div className={classes.user}>To :- {item.to}</div>
-            <div className={classes.subject}>Subject :- {item.subject}</div>
-            <div className={classes.msg}>
-                <NavLink to={`/message/${item.id}`}>{'{message}'}</NavLink>
-            </div>
-             <div className={classes.delete}>
-                <button onClick={deleteHandler.bind(null,item.id)}>Delete</button>
-            </div>
-            </div>
-                ))
-            }
-        </div>) : <p>Sentbox is empty</p>}
-    </div>
+    <Fragment>
+        <div className={classes.main}>
+        <Form className={`${classes.To}`} onSubmit={submitHandler} >
+      <Form.Group className="mb-3" controlId="formBasicEmail">
+        <Form.Label>To</Form.Label>
+        <Form.Control type="email" placeholder="Enter email" value={email} onChange={EmailchangeHandler} />
+        
+      </Form.Group>
+      <Form.Group className="mb-3" controlId="formBasicPassword">
+        <Form.Label>Subject</Form.Label>
+        <Form.Control type="text" value={subject} onChange={SubjectchangeHandler} />
+      </Form.Group>
+      
+      <Button variant="primary" type="submit">
+        Send
+      </Button>
+    </Form>
+<div className={classes.editor}>
+    <Editor 
+            editorState={editorState}
+            onEditorStateChange={editorHandler}
+            />
+</div>
+        </div>
+    </Fragment>
   )
 }
-export default Send;
+export default Send
